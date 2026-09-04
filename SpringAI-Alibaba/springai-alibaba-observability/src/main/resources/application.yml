@@ -1,0 +1,59 @@
+server:
+  port: 10011
+
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: zipkin-observability
+
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      observations:
+        log-completion: true
+        log-prompt: true
+
+    alibaba:
+      toolcalling:
+        weather:
+          api-key: ${ALIBABA_WEATHER_API_KEY}
+          enabled: true
+
+    chat:
+      observations:
+        # 记录提示、完成、错误内容
+        log-prompt: true
+        log-completion: true
+        include-error-logging: true
+
+
+    tools:
+      observations:
+        # 工具调用内容
+        include-content: true
+
+  http:
+    client:
+      read-timeout: 60s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      # 应用健康状态检查
+      show-details: always
+  tracing:
+    sampling:
+      # trace 采样信息，记录每个请求
+      probability: 1.0
+    zipkin:
+      tracing:
+        endpoint: http://localhost:9411/api/v2/spans

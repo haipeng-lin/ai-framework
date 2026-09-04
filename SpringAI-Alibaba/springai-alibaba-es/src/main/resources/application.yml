@@ -1,0 +1,35 @@
+server:
+  port: 10020
+
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: springai-alibaba-es
+
+  # DashScope API 配置
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+
+    # Elasticsearch 向量存储配置
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        index-name: spring-ai-es-rag-index
+        dimensions: 1024
+        similarity: cosine
+
+  # Elasticsearch 配置
+  elasticsearch:
+    uris: https://Ip地址:9200/
+    username:
+    password:
+    connection-timeout: 5s
+    socket-timeout: 30s
+    ssl:
+      ver

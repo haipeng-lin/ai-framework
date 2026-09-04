@@ -1,0 +1,33 @@
+server:
+  port: 10010
+
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: nacos-prompt
+
+  # 指定监听的 prompt 配置
+  config:
+    import:
+      - "optional:nacos:prompt-config.json"
+  nacos:
+    config:
+      server-addr: 127.0.0.1:8848
+      username: nacos
+      password: nacos
+
+  # DashScope API 配置
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+
+    # 开启 Nacos 的 Prompt Template 监听功能
+    nacos:
+      prompt:
+        template:
+          enabled: true
