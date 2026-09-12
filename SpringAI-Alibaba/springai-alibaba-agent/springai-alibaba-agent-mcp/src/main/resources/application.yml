@@ -1,0 +1,30 @@
+server:
+  port: 10026
+
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: springai-alibaba-agent-mcp
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:demo}
+    mcp:
+      client:
+        type: SYNC
+        toolcallback:
+          enabled: true
+        sse:
+          connections:
+            zetlight-mcp-server:
+              url: http://localhost:8080
+
+logging:
+  level:
+    # 查看MCP详细日志
+    io.modelcontextprotocol: TRACE
+    org.springframework.ai.mcp: TRACE
