@@ -1,0 +1,3 @@
+ spring.application.name=springai-alibaba-graph-test
+ graph.model=qwen-plus
+ logging.level.com.alibaba.cloud.ai.graph=OFF
