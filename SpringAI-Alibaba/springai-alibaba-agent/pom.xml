@@ -31,7 +31,8 @@
        <module>springai-alibaba-agent-skill</module>
        <module>springai-alibaba-agent-loop</module>
        <module>springai-alibaba-agent-comprehensive</module>
-   </modules>
+           <module>springai-alibaba-agent-mcp</module>
+    </modules>
 
     <packaging>pom</packaging>
 

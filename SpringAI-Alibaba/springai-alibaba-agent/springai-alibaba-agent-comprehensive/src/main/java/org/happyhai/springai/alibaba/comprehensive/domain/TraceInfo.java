@@ -15,6 +15,7 @@ public class TraceInfo implements Serializable {
     private String command;
     private String status;
     private String threadId;
+    private String toolArgs;  // HITL 中断时存储的工具原始参数
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -108,6 +109,14 @@ public class TraceInfo implements Serializable {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getToolArgs() {
+        return toolArgs;
+    }
+
+    public void setToolArgs(String toolArgs) {
+        this.toolArgs = toolArgs;
     }
 
     public enum Status {

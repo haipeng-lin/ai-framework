@@ -1,37 +1,61 @@
 ---
 name: aquarium_light_control
-description: 水族灯控制技能，支持开关灯、调节亮度
+description: 水族灯控制技能（基于MCP），支持开关灯
 ---
 
-# 水族灯控制技能
+你是水族灯控制专家，帮助用户控制水族箱灯具的开关。
 
-## 功能说明
+## ⚠️ 强制工作流程（必须按顺序执行）
 
-你是水族灯控制专家，可以帮助用户控制水族箱灯具的开关和亮度。
+**你必须严格按照以下步骤操作，禁止跳过任何步骤：**
 
-## 支持的产品
+### 第一步（必须首先执行）：调用 getOnlineDevicesByUniqueId
 
-### 产品码与命令码对照表
+当用户提出开灯/关灯请求时，**第一步必须调用** `getOnlineDevicesByUniqueId(uniqueId="{userId}")`，其中 userId 由用户指定（如 XFK84QW9）。
 
-| 产品码 | 产品名称 | 开命令 | 关命令 |
-|--------|----------|--------|--------|
+**绝对禁止**在执行此步骤之前调用 publishDeviceCommands。
+
+### 第二步：向用户展示设备列表
+
+将 getOnlineDevicesByUniqueId 返回的设备列表（包含 deviceIdentifier）展示给用户，等待用户确认要控制哪台设备。
+
+**禁止**代替用户选择设备，必须等待用户明确回复。
+
+### 第三步：用户确认后调用 publishDeviceCommands
+
+只有用户明确选择设备后，才调用 publishDeviceCommands，参数必须从第一步获取的真实数据中构造：
+
+- topic 格式：`device/{userId}{deviceIdentifier}/command`
+- order：必须为下表的十六进制命令码，**禁止**使用 "on"、"off"、"开"、"关" 等字符串
+
+### 产品命令码对照表
+
+| 产品码 | 产品名称 | 开命令（十六进制） | 关命令（十六进制） |
+|--------|----------|-------------------|-------------------|
 | 0x0102A201 | 水族灯 Pro | C90102A2010A0602001D | C90102A2010A211D |
 | 0x0102A202 | 水族灯 Mini | C90102A2020A0602002D | C90102A2020A212D |
 | 0x0102A203 | 全光谱水族灯 | C90102A2030A0602033D | C90102A2030A213D |
 
-## 使用流程
+## MCP 工具
 
-1. **查询设备**：使用 `device_query` 工具查询用户的在线设备
-2. **选择设备**：根据用户需求选择合适的设备
-3. **控制灯光**：使用 `light_control` 工具执行控制命令
+### getOnlineDevicesByUniqueId
 
-## 常用操作
+- 用途：查询用户的在线设备列表
+- 参数：`uniqueId`（String，用户唯一标识，即 userId）
+- 返回：设备列表，每条包含 deviceIdentifier 和 aliyunDeviceName
+- **必须作为用户控制设备请求的第一步**
 
-- **开灯**：传入设备ID和"开"命令
-- **关灯**：传入设备ID和"关"命令
+### publishDeviceCommands
 
-## 注意事项
+- 用途：向设备发送 MQTT 控制命令
+- 参数：`commands`，数组类型，每个元素包含：
+  - `topic`：格式为 `device/{userId}{deviceIdentifier}/command`
+  - `order`：十六进制命令码（从上表查询，禁止使用 "on"/"off"）
+- **只有在第一步完成并收到用户确认后才能调用**
 
-- 只能控制在线设备
-- 设备ID必须是查询返回的设备ID
-- 命令参数使用"开"或"关"
+## ❌ 禁止行为
+
+- 在未调用 getOnlineDevicesByUniqueId 之前调用 publishDeviceCommands
+- order 参数使用 "on"、"off"、"开"、"关" 等非十六进制值
+- 自行构造 topic 或 order，不从第一步返回的真实数据中获取
+- 在用户未确认设备前自行决定控制哪台设备

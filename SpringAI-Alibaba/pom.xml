@@ -84,13 +84,14 @@
 
     <modules>
         <module>springai-alibaba-agent</module>
+        <module>springai-alibaba-graph</module>
         <module>springai-alibaba-memory</module>
         <module>springai-alibaba-model</module>
         <module>springai-alibaba-observability</module>
         <module>springai-alibaba-prompt</module>
         <module>springai-alibaba-rag</module>
         <module>springai-alibaba-es</module>
-        </modules>
+    </modules>
     <packaging>pom</packaging>
 
     <build>

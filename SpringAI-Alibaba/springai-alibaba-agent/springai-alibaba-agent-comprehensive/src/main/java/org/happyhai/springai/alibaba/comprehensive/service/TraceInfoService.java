@@ -109,6 +109,22 @@ public class TraceInfoService {
         return updateTraceInfo(traceInfo);
     }
 
+    /**
+     * 存储 HITL 中断时的工具原始参数，供 confirm 接口直接调用 MCP 工具
+     */
+    public boolean updateToolArgs(String traceId, String toolArgs) {
+        Optional<TraceInfo> optionalTraceInfo = getTraceInfo(traceId);
+        if (optionalTraceInfo.isEmpty()) {
+            logger.warn("Cannot update tool args - TraceInfo not found - traceId: {}", traceId);
+            return false;
+        }
+        TraceInfo traceInfo = optionalTraceInfo.get();
+        traceInfo.setToolArgs(toolArgs);
+        traceInfo.setStatus(TraceInfo.Status.PENDING_CONFIRMATION.name());
+        traceInfo.setUpdatedAt(java.time.LocalDateTime.now());
+        return updateTraceInfo(traceInfo);
+    }
+
     public boolean deleteTraceInfo(String traceId) {
         String key = TRACE_KEY_PREFIX + traceId;
         try {

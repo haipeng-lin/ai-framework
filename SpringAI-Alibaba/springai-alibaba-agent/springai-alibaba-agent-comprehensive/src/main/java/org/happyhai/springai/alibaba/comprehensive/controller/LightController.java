@@ -4,14 +4,14 @@ import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
-import org.happyhai.springai.alibaba.comprehensive.domain.DeviceInfo;
 import org.happyhai.springai.alibaba.comprehensive.domain.LightCommand;
 import org.happyhai.springai.alibaba.comprehensive.domain.TraceInfo;
 import org.happyhai.springai.alibaba.comprehensive.service.DeviceService;
 import org.happyhai.springai.alibaba.comprehensive.service.TraceInfoService;
-import org.happyhai.springai.alibaba.comprehensive.tool.LightControlTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,11 +26,17 @@ public class LightController {
     private final TraceInfoService traceInfoService;
     private final DeviceService deviceService;
     private final ReactAgent reactAgent;
+    private final ToolCallbackProvider toolCallbackProvider;
+    private final LightSseService sseService;
 
-    public LightController(TraceInfoService traceInfoService, DeviceService deviceService, ReactAgent reactAgent) {
+    public LightController(TraceInfoService traceInfoService, DeviceService deviceService,
+                           ReactAgent reactAgent, ToolCallbackProvider toolCallbackProvider,
+                           LightSseService sseService) {
         this.traceInfoService = traceInfoService;
         this.deviceService = deviceService;
         this.reactAgent = reactAgent;
+        this.toolCallbackProvider = toolCallbackProvider;
+        this.sseService = sseService;
     }
 
     /**
@@ -46,6 +52,8 @@ public class LightController {
         logger.info("=== 对话请求 ===");
         logger.info("用户: {}, 消息: {}, traceId: {}, selectedDeviceId: {}", userId, message, traceId, selectedDeviceId);
 
+        long totalStart = System.currentTimeMillis();
+
         String currentTraceId = traceId;
         String threadId;
 
@@ -53,11 +61,16 @@ public class LightController {
             currentTraceId = traceInfoService.generateTraceId();
             threadId = "thread-" + currentTraceId;
 
+            long redisSaveStart = System.currentTimeMillis();
             TraceInfo traceInfo = new TraceInfo(currentTraceId, userId, TraceInfo.Status.PENDING_DEVICE_SELECTION.name(), threadId);
             traceInfoService.saveTraceInfo(traceInfo);
+            logger.info("[耗时] Redis保存TraceInfo: {}ms", System.currentTimeMillis() - redisSaveStart);
             logger.info("新对话，已生成 TraceId: {}", currentTraceId);
         } else {
+            long redisGetStart = System.currentTimeMillis();
             Optional<TraceInfo> existingTrace = traceInfoService.getTraceInfo(currentTraceId);
+            logger.info("[耗时] Redis查询TraceInfo: {}ms", System.currentTimeMillis() - redisGetStart);
+
             if (existingTrace.isPresent()) {
                 threadId = existingTrace.get().getThreadId();
                 logger.info("继续对话，traceId: {}", currentTraceId);
@@ -68,39 +81,26 @@ public class LightController {
 
         try {
             String prompt;
-            
-            if (selectedDeviceId != null && !selectedDeviceId.isEmpty()) {
-                // 用户选择了设备，继续执行灯光控制
-                Optional<DeviceInfo> deviceOpt = deviceService.getDeviceById(selectedDeviceId);
-                if (deviceOpt.isEmpty()) {
-                    return ResponseEntity.badRequest().body(Map.of(
-                            "success", false,
-                            "error", "设备不存在: " + selectedDeviceId
-                    ));
-                }
+            String action = detectAction(message);
 
-                DeviceInfo device = deviceOpt.get();
-                String action = detectAction(message);
-                
-                // 更新 traceInfo
-                traceInfoService.updateLightControl(currentTraceId, device.getDeviceId(), 
-                        device.getDeviceName(), action, device.getProductCode());
+            if (selectedDeviceId != null && !selectedDeviceId.isEmpty()) {
+                long updateLcStart = System.currentTimeMillis();
+                traceInfoService.updateLightControl(currentTraceId, selectedDeviceId,
+                        selectedDeviceId, action, "unknown");
+                logger.info("[耗时] Redis更新LightControl: {}ms", System.currentTimeMillis() - updateLcStart);
 
                 prompt = String.format(
-                        "当前用户ID: %s\n\n" +
-                        "用户已选择设备:\n" +
-                        "- 设备ID: %s\n" +
-                        "- 设备名称: %s\n" +
-                        "- 产品码: %s\n" +
-                        "- 用户操作: %s\n\n" +
-                        "请使用 light_control 工具执行灯光控制，deviceId 参数使用: %s，command 参数使用: %s",
-                        userId, device.getDeviceId(), device.getDeviceName(), device.getProductCode(), action,
-                        device.getDeviceId(), action
+                        "用户ID: %s，用户请求: %s，用户操作: %s\n" +
+                                "用户已选择设备，deviceIdentifier: %s\n\n" +
+                                "第一步：再次调用 getOnlineDevicesByUniqueId(uniqueId=\"%s\") 确认该设备在线，获取完整设备信息。\n" +
+                                "第二步：参考 SKILL.md，使用 publishDeviceCommands 发送控制命令，topic 格式为 device/{userId}{deviceIdentifier}/command，order 必须是十六进制命令（禁止 on/off）。",
+                        userId, message, action, selectedDeviceId, userId
                 );
             } else {
-                // 首次请求，先查询设备
                 prompt = String.format(
-                        "当前用户ID: %s\n\n用户请求: %s\n\n请使用 device_query 工具查询该用户的在线设备，userId 参数必须使用: %s",
+                        "用户ID: %s，用户请求: %s\n\n" +
+                                "第一步：使用 getOnlineDevicesByUniqueId(uniqueId=\"%s\") 查询用户在线设备，将设备列表返回给用户确认。\n" +
+                                "第二步：用户确认后再使用 publishDeviceCommands 发送控制命令，参考 SKILL.md 中 topic 和 order 的格式。",
                         userId, message, userId
                 );
             }
@@ -109,9 +109,12 @@ public class LightController {
                     .threadId(threadId)
                     .build();
 
+            long agentStart = System.currentTimeMillis();
             Optional<NodeOutput> result = reactAgent.invokeAndGetOutput(prompt, config);
+            long agentMs = System.currentTimeMillis() - agentStart;
+            logger.info("[耗时] Agent执行: {}ms", agentMs);
 
-            Map<String, Object> response = new HashMap<>();
+            Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", true);
             response.put("traceId", currentTraceId);
             response.put("threadId", threadId);
@@ -119,36 +122,41 @@ public class LightController {
 
             if (result.isPresent()) {
                 NodeOutput output = result.get();
-                
+
                 if (output instanceof InterruptionMetadata interruptionMetadata) {
                     logger.info("检测到中断 - 需要人工确认");
-                    response.put("status", "PENDING_CONFIRMATION");
-                    response.put("interrupted", true);
 
+                    long toolArgsStart = System.currentTimeMillis();
                     List<Map<String, String>> feedbacks = new ArrayList<>();
+                    String toolArgs = null;
                     for (InterruptionMetadata.ToolFeedback feedback : interruptionMetadata.toolFeedbacks()) {
                         feedbacks.add(Map.of(
                                 "tool", feedback.getName(),
                                 "args", feedback.getArguments(),
                                 "description", feedback.getDescription()
                         ));
+                        if ("publishDeviceCommands".equals(feedback.getName())) {
+                            toolArgs = feedback.getArguments();
+                        }
                     }
+                    if (toolArgs != null) {
+                        traceInfoService.updateToolArgs(currentTraceId, toolArgs);
+                    }
+                    logger.info("[耗时] 解析InterruptMetadata+Redis保存ToolArgs: {}ms", System.currentTimeMillis() - toolArgsStart);
+
+                    response.put("status", "PENDING_CONFIRMATION");
+                    response.put("interrupted", true);
                     response.put("toolFeedbacks", feedbacks);
                     response.put("message", "操作需要人工确认，请调用 /confirm 接口批准或拒绝");
                 } else {
                     String outputStr = output.toString();
-                    
-                    // 检查是否返回了设备列表（需要用户选择）
+
                     if (outputStr.contains("找到") && outputStr.contains("设备")) {
                         logger.info("返回设备列表供用户选择");
                         response.put("status", "NEED_DEVICE_SELECTION");
                         response.put("interrupted", false);
                         response.put("needDeviceSelection", true);
-                        
-                        // 解析设备列表
-                        List<DeviceInfo> devices = deviceService.getOnlineDevicesByUserId(userId);
-                        response.put("devices", devices);
-                        response.put("message", "请选择要控制的设备");
+                        response.put("message", "请从上方设备列表中选择要控制的设备，回复设备对应的 deviceIdentifier");
                     } else {
                         logger.info("Agent 执行完成");
                         response.put("status", "COMPLETED");
@@ -161,6 +169,8 @@ public class LightController {
                 response.put("interrupted", true);
             }
 
+            long totalMs = System.currentTimeMillis() - totalStart;
+            logger.info("[耗时] 对话请求总耗时: {}ms", totalMs);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -173,7 +183,7 @@ public class LightController {
     }
 
     /**
-     * 确认灯光控制操作
+     * 确认灯光控制操作。
      */
     @PostMapping("/confirm")
     public ResponseEntity<Map<String, Object>> confirmLight(
@@ -183,6 +193,7 @@ public class LightController {
 
         logger.info("=== 确认请求 ===");
         logger.info("TraceId: {}, 批准: {}", traceId, approved);
+        long totalStart = System.currentTimeMillis();
 
         Optional<TraceInfo> optionalTraceInfo = traceInfoService.getTraceInfo(traceId);
         if (optionalTraceInfo.isEmpty()) {
@@ -197,45 +208,35 @@ public class LightController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("traceId", traceId);
+        String toolArgs = traceInfo.getToolArgs();
+        String toolResult = null;
 
         try {
             if (approved) {
-                String deviceId = traceInfo.getDeviceId();
-                String action = traceInfo.getAction();
-                String productCode = traceInfo.getCommand();
-
-                String command = resolveCommand(productCode, action);
-                LightControlTool.executeMqttCommand(deviceId, command);
-
                 traceInfoService.updateStatus(traceId, TraceInfo.Status.APPROVED);
 
                 response.put("success", true);
                 response.put("status", "APPROVED");
-                response.put("message", String.format("已执行 %s 操作，设备: %s", action, traceInfo.getDeviceName()));
+                response.put("message", "已批准，等待 Agent 执行设备控制命令");
 
                 try {
-                    InterruptionMetadata.Builder feedbackBuilder = InterruptionMetadata.builder()
-                            .nodeId(threadId)
-                            .state(null);
+                    long mcpStart = System.currentTimeMillis();
+                    for (ToolCallback tc : toolCallbackProvider.getToolCallbacks()) {
+                        if ("publishDeviceCommands".equals(tc.getToolDefinition().name())) {
+                            logger.info("找到 MCP 工具，直接调用");
+                            toolResult = tc.call(toolArgs);
+                            break;
+                        }
+                    }
+                    logger.info("[耗时] MCP工具publishDeviceCommands调用: {}ms, 结果: {}", System.currentTimeMillis() - mcpStart, toolResult);
 
-                    InterruptionMetadata.ToolFeedback approvedFeedback = InterruptionMetadata.ToolFeedback.builder()
-                            .name("light_control")
-                            .result(InterruptionMetadata.ToolFeedback.FeedbackResult.APPROVED)
-                            .description("用户批准了灯光控制操作")
-                            .build();
-                    feedbackBuilder.addToolFeedback(approvedFeedback);
-
-                    InterruptionMetadata approvalMetadata = feedbackBuilder.build();
-
-                    RunnableConfig resumeConfig = RunnableConfig.builder()
-                            .threadId(threadId)
-                            .addMetadata(RunnableConfig.HUMAN_FEEDBACK_METADATA_KEY, approvalMetadata)
-                            .build();
-
-                    reactAgent.invokeAndGetOutput("", resumeConfig);
-                    logger.info("Agent 已恢复执行");
+                    boolean wokeSse = sseService.triggerConfirmation(traceId, "开灯指令已成功发送！");
+                    if (!wokeSse) {
+                        response.put("toolResult", toolResult);
+                    }
                 } catch (Exception e) {
-                    logger.warn("恢复 Agent 执行时出现异常: {}", e.getMessage());
+                    logger.error("恢复 Agent 执行失败", e);
+                    sseService.triggerConfirmation(traceId, "执行失败：" + e.getMessage());
                 }
 
             } else {
@@ -246,8 +247,11 @@ public class LightController {
                 if (feedback != null && !feedback.isEmpty()) {
                     response.put("feedback", feedback);
                 }
+                sseService.triggerConfirmation(traceId, "操作已拒绝");
             }
 
+            long totalMs = System.currentTimeMillis() - totalStart;
+            logger.info("[耗时] 确认请求总耗时: {}ms", totalMs);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -259,28 +263,40 @@ public class LightController {
         }
     }
 
-    /**
-     * 查询设备列表
-     */
     @GetMapping("/devices")
     public ResponseEntity<Map<String, Object>> getDevices(
             @RequestParam(required = false, defaultValue = "user001") String userId) {
+        long start = System.currentTimeMillis();
+        String threadId = "thread-devices-" + UUID.randomUUID().toString().replace("-", "");
+        String prompt = String.format(
+                "用户ID: %s\n\n请使用 getOnlineDevicesByUniqueId(uniqueId=\"%s\") 查询用户在线设备，直接返回设备列表。",
+                userId, userId
+        );
+        try {
+            RunnableConfig config = RunnableConfig.builder().threadId(threadId).build();
+            long agentStart = System.currentTimeMillis();
+            Optional<NodeOutput> result = reactAgent.invokeAndGetOutput(prompt, config);
+            logger.info("[耗时] Agent查询设备: {}ms", System.currentTimeMillis() - agentStart);
 
-        List<DeviceInfo> devices = deviceService.getOnlineDevicesByUserId(userId);
-        List<DeviceInfo> allDevices = deviceService.getDevicesByUserId(userId);
-
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "onlineDevices", devices,
-                "allDevices", allDevices
-        ));
+            String message = result.map(Object::toString).orElse("未返回结果");
+            logger.info("[耗时] /devices请求总耗时: {}ms", System.currentTimeMillis() - start);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "userId", userId,
+                    "message", message
+            ));
+        } catch (Exception e) {
+            logger.error("查询设备失败", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+            ));
+        }
     }
 
-    /**
-     * 查询状态
-     */
     @GetMapping("/status/{traceId}")
     public ResponseEntity<Map<String, Object>> getStatus(@PathVariable String traceId) {
+        long start = System.currentTimeMillis();
         Optional<TraceInfo> optionalTraceInfo = traceInfoService.getTraceInfo(traceId);
         if (optionalTraceInfo.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -290,6 +306,7 @@ public class LightController {
         }
 
         TraceInfo traceInfo = optionalTraceInfo.get();
+        logger.info("[耗时] /status查询: {}ms", System.currentTimeMillis() - start);
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "traceId", traceId,
@@ -303,9 +320,6 @@ public class LightController {
         ));
     }
 
-    /**
-     * 获取支持的灯光命令码
-     */
     @GetMapping("/commands")
     public ResponseEntity<Map<String, Object>> getCommands() {
         Map<String, LightCommand> commands = deviceService.getAllLightCommands();
@@ -316,26 +330,25 @@ public class LightController {
     }
 
     private String resolveCommand(String productCode, String action) {
+        if (productCode == null || "unknown".equals(productCode)) {
+            return "unknown";
+        }
         Optional<LightCommand> lightCommand = deviceService.getLightCommand(productCode);
         if (lightCommand.isEmpty()) {
-            logger.warn("未找到产品码命令: {}, 使用默认命令", productCode);
             return "C90102A2010A0602001D";
         }
-
-        if ("开".equals(action) || "on".equalsIgnoreCase(action)) {
-            return lightCommand.get().getPowerOnCommand();
-        } else {
-            return lightCommand.get().getPowerOffCommand();
-        }
+        return "开".equals(action) || "on".equalsIgnoreCase(action)
+                ? lightCommand.get().getPowerOnCommand()
+                : lightCommand.get().getPowerOffCommand();
     }
 
     private String detectAction(String message) {
         String lowerMsg = message.toLowerCase();
-        if (lowerMsg.contains("关") || lowerMsg.contains("off") || lowerMsg.contains("shutdown") || lowerMsg.contains("close")) {
-            return "关";
-        } else if (lowerMsg.contains("开") || lowerMsg.contains("on") || lowerMsg.contains("open") || lowerMsg.contains("启动")) {
-            return "开";
-        }
-        return "关";
+        boolean hasOn = lowerMsg.matches(".*(开|on|open|启动).*");
+        boolean hasOff = lowerMsg.matches(".*(关|off|shutdown|close).*");
+        if (hasOn && !hasOff) return "open";
+        if (hasOff && !hasOn) return "close";
+        if (hasOn && hasOff) return "open";
+        return "close";
     }
 }
