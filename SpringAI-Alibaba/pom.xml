@@ -90,7 +90,8 @@
         <module>springai-alibaba-prompt</module>
         <module>springai-alibaba-rag</module>
         <module>springai-alibaba-es</module>
-        </modules>
+        <module>springai-alibaba-voice-translate</module>
+    </modules>
     <packaging>pom</packaging>
 
     <build>
@@ -103,4 +104,3 @@
     </build>
 
 </project>
-
