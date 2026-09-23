@@ -1,0 +1,66 @@
+server:
+  port: 10007
+  servlet:
+    encoding:
+      charset: utf-8
+      enabled: true
+      force: true
+
+
+
+spring:
+  application:
+    name: SA07-springai-alibaba-agent-comprehensive
+  ai:
+    mcp:
+      client:
+        type: SYNC
+        toolcallback:
+          enabled: true
+        # 切换到 Streamable HTTP,与 zetlight 服务端的 /mcp 端点保持一致,
+        # 并配合 OAuth2 client_credentials 自动注入 Bearer Token
+        streamable-http:
+          connections:
+            zetlight-mcp-server:
+              url: ${MCP_SERVER_URL:http://localhost:8080/mcp}
+  # OAuth2 client:从 MCP 授权服务器拿 access token
+  security:
+    oauth2:
+      client:
+        registration:
+          authserver-client-credentials:
+            client-id: ${MCP_CLIENT_ID:zetlight-mcp-client}
+            client-secret: ${MCP_CLIENT_SECRET:change-me-please}
+            authorization-grant-type: client_credentials
+            scope: ${MCP_CLIENT_SCOPE:read,write}
+            provider: authserver
+        provider:
+          authserver:
+            # 独立 MCP 授权服务器,默认 9000
+            issuer-uri: ${MCP_AUTH_ISSUER_URI:http://localhost:9000}
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: "123456"
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+agent:
+  react:
+    name: aquarium_mcp_agent
+    enable: true
+    classpath-path: skills
+
+logging:
+  level:
+    org.happyhai.springai.alibaba.comprehensive: DEBUG
+    com.alibaba.cloud.ai: DEBUG
+    io.modelcontextprotocol: TRACE
+    org.springframework.ai.mcp: TRACE

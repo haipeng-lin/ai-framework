@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.happyhai.springai.alibaba</groupId>
+        <artifactId>springai-alibaba-admin</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>S09-springai-alibaba-mcp</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        MCP 相关模块聚合:OAuth2 授权服务器、客户端接入等
+    </description>
+
+    <modules>
+        <module>SM01-springai-alibaba-mcp-auth-server</module>
+        <module>SM02-springai-alibaba-mcp-server</module>
+        <module>SM03-springai-alibaba-mcp-client</module>
+    </modules>
+</project>

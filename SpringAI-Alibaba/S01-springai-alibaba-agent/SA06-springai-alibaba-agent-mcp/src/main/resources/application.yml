@@ -1,0 +1,46 @@
+server:
+  port: 10006
+
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: SA06-springai-alibaba-agent-mcp
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:demo}
+    mcp:
+      client:
+        type: SYNC
+        toolcallback:
+          enabled: true
+        # 切换到 Streamable HTTP,与服务器端的 protocol: STREAMABLE / endpoint: /mcp 保持一致
+        streamable-http:
+          connections:
+            zetlight-mcp-server:
+              url: http://localhost:8080/mcp
+  security:
+    oauth2:
+      client:
+        # client_credentials 流程,机器到机器,无用户在场
+        registration:
+          authserver-client-credentials:
+            client-id: ${MCP_CLIENT_ID:zetlight-mcp-client}
+            client-secret: ${MCP_CLIENT_SECRET:change-me-please}
+            authorization-grant-type: client_credentials
+            scope: ${MCP_CLIENT_SCOPE:read,write}
+            provider: authserver
+        provider:
+          authserver:
+            # 独立 MCP 授权服务器,默认 9000
+            issuer-uri: ${MCP_AUTH_ISSUER_URI:http://localhost:9000}
+
+logging:
+  level:
+    # 查看MCP详细日志
+    io.modelcontextprotocol: TRACE
+    org.springframework.ai.mcp: TRACE

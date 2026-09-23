@@ -1,0 +1,19 @@
+server:
+  port: 20005
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: A05-agentscope-permission
+
+agentscope:
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true

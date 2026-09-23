@@ -1,0 +1,12 @@
+server:
+  port: 10002
+
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: SA02-springai-alibaba-agent-tool

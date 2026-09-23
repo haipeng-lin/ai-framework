@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: A01-agentscope-hello
+
+
+server:
+  port: 30011

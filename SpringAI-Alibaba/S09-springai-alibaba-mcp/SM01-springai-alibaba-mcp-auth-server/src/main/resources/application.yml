@@ -1,0 +1,51 @@
+
+server:
+  port: 9000
+  servlet:
+    session:
+      cookie:
+        # 覆盖默认 JSESSIONID 名称,便于本机跑多个 Spring 应用时 cookie 互不串扰
+        name: MCP_AUTHORIZATION_SERVER_SESSIONID
+
+spring:
+  application:
+    name: SM01-springai-alibaba-mcp-auth-server
+
+  security:
+    oauth2:
+      authorizationserver:
+        client:
+          # 一个预置的 client,同时支持 client_credentials(机器到机器)和 authorization_code(用户级)
+          default-client:
+            token:
+              access-token-time-to-live: 1h
+            registration:
+              client-id: ${MCP_AUTH_CLIENT_ID:zetlight-mcp-client}
+              client-secret: ${MCP_AUTH_CLIENT_SECRET:change-me-please}
+              client-authentication-methods:
+                - client_secret_basic
+                - none
+              authorization-grant-types:
+                - client_credentials
+                - authorization_code
+              redirect-uris:
+                - "http://127.0.0.1:8080/authorize/oauth2/code/authserver"
+                - "http://localhost:8080/authorize/oauth2/code/authserver"
+                # mcp-inspector
+                - "http://localhost:6274/oauth/callback"
+                # claude code
+                - "https://claude.ai/api/mcp/auth_callback"
+              scopes:
+                - read
+                - write
+    user:
+      # 内存单用户(authorization_code 流程登录用),仅供本地调试
+      # 生产建议对接真实用户系统
+      name: ${MCP_AUTH_USER:user}
+      password: ${MCP_AUTH_PASSWORD:password}
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.springaicommunity.mcp: INFO
+

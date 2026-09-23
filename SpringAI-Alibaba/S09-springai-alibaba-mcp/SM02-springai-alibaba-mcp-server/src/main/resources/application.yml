@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: SM02-springai-alibaba-mcp-server
+
+  ai:
+    mcp:
+      server:
+        # 与 SA06/SA07 客户端的 url: http://localhost:8080/mcp 保持一致
+        name: zetlight-mcp-server
+        protocol: STREAMABLE
+        type: SYNC
+        # 工具 bean 由 @Component + @Tool 注解自动注册,无需额外配置
+        tool-scanner:
+          enabled: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # JWT 必须由 SM01 授权服务器 (端口 9000) 签发
+          issuer-uri: ${MCP_AUTH_ISSUER_URI:http://localhost:9000}
+
+logging:
+  level:
+    # 查看 MCP 与 OAuth2 资源服务器的详细日志
+    org.springframework.ai.mcp: DEBUG
+    io.modelcontextprotocol: TRACE
+    org.springframework.security.oauth2: DEBUG

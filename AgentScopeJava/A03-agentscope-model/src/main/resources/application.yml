@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: A01-agentscope-hello
+
+agentscope:
+  model:
+    provider: dashscope
+  openai:
+    api-key: ${OPENAI_API_KEY}
+    base-url:
+    model-name: gpt-4.1-mini
+    stream: true
+  dashscope:
+    base-url:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: gpt-4.1-mini
+    stream: true

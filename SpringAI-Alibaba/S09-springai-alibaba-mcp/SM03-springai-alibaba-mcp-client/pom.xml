@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.happyhai.springai.alibaba</groupId>
+        <artifactId>S09-springai-alibaba-mcp</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>SM03-springai-alibaba-mcp-client</artifactId>
+
+    <description>
+        MCP 测试客户端:用 client_credentials 从 SM01 拿 token,连本仓库的 SM02 服务器,
+        启动后列出可用工具并依次调用,验证 OAuth2 + MCP 整条链路通畅。
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- MCP 客户端 (Streamable HTTP) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-client</artifactId>
+        </dependency>
+
+        <!-- MCP 客户端 OAuth2 能力:把 client_credentials token 注入到每个 MCP 请求 -->
+        <dependency>
+            <groupId>org.springaicommunity</groupId>
+            <artifactId>mcp-client-security</artifactId>
+            <version>0.0.6</version>
+        </dependency>
+
+        <!-- Spring 官方 OAuth2 client;mcp-client-security 复用它来管理 token -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+    </dependencies>
+</project>

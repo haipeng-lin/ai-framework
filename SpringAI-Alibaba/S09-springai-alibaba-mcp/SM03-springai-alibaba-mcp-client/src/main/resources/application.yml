@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: SM03-springai-alibaba-mcp-client
+
+  ai:
+    mcp:
+      client:
+        type: SYNC
+        toolcallback:
+          enabled: true
+        # Streamable HTTP 与 SM02 的 protocol: STREAMABLE / endpoint: /mcp 对齐
+        streamable-http:
+          connections:
+            zetlight-mcp-server:
+              url: ${MCP_SERVER_URL:http://localhost:8080/mcp}
+
+  # OAuth2 client:从 SM01 (localhost:9000) 拿 token,再注入到每个 MCP 请求头
+  security:
+    oauth2:
+      client:
+        registration:
+          authserver-client-credentials:
+            client-id: ${MCP_CLIENT_ID:zetlight-mcp-client}
+            client-secret: ${MCP_CLIENT_SECRET:change-me-please}
+            authorization-grant-type: client_credentials
+            scope: ${MCP_CLIENT_SCOPE:read,write}
+            provider: authserver
+        provider:
+          authserver:
+            issuer-uri: ${MCP_AUTH_ISSUER_URI:http://localhost:9000}
+
+logging:
+  level:
+    # 想看 token 怎么拿、怎么注入就把下面开到 DEBUG
+    org.happyhai.springai.alibaba.mcp.client: INFO
+    org.springframework.security.oauth2.client: INFO
+    org.springframework.ai.mcp: DEBUG
+    io.modelcontextprotocol: TRACE

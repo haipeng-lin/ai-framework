@@ -1,0 +1,52 @@
+server:
+  port: 20017
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 25MB
+      max-request-size: 30MB
+      file-size-threshold: 1MB
+  config:
+    # 从 .env 加载本地开发用的敏感配置；[.properties] 是 Spring Boot 的格式提示，
+    # 让它把无扩展名的 .env 当作 properties 文件读取。
+    import: optional:file:.env[.properties]
+  application:
+    name: S08-springai-alibaba-voice-chat-robot
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+  ai:
+    openai:
+      # SiliconFlow 的 API Key，建议通过启动参数 -Dsilicon-api-key=xxx 或环境变量传入
+      api-key: sk-mpxckkhqhrqfhkvndcsdorzjjdxonygnpjsqifsfpduwlulw
+      base-url: https://api.siliconflow.cn
+      chat:
+        options:
+          model: Qwen/Qwen2.5-7B-Instruct
+          temperature: 0.3
+      # 音频转录单独走 /v1 子路径，避免和 chat 共享客户端配置
+      audio:
+        transcription:
+          api-key: sk-mpxckkhqhrqfhkvndcsdorzjjdxonygnpjsqifsfpduwlulw
+          base-url: https://api.siliconflow.cn
+#          transcription-path: /audio/transcriptions
+          options:
+            # SiliconFlow 自家 ASR 模型，对 /audio/transcriptions 端点完整支持
+            model: XingChenAGI/XingChenASR-V3.2
+            response-format: json
+
+logging:
+  level:
+    root: INFO
+    org.happyhai.springai.alibaba.voice: DEBUG
+    # Spring AI 自带的 SimpleLoggerAdvisor 默认往这个 logger 打 DEBUG 日志
+    org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: DEBUG
+    org.springframework.ai: debug
