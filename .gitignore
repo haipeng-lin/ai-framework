@@ -114,3 +114,7 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
+# AgentScope
+.agentscope/*
+.m2/
