@@ -83,14 +83,16 @@
     </dependencies>
 
     <modules>
-        <module>springai-alibaba-agent</module>
-        <module>springai-alibaba-graph</module>
-        <module>springai-alibaba-memory</module>
-        <module>springai-alibaba-model</module>
-        <module>springai-alibaba-observability</module>
-        <module>springai-alibaba-prompt</module>
-        <module>springai-alibaba-rag</module>
-        <module>springai-alibaba-es</module>
+        <module>S01-springai-alibaba-agent</module>
+        <module>S02-springai-alibaba-model</module>
+        <module>S03-springai-alibaba-memory</module>
+        <module>S04-springai-alibaba-prompt</module>
+        <module>S05-springai-alibaba-rag</module>
+        <module>S06-springai-alibaba-observability</module>
+        <module>S07-springai-alibaba-es</module>
+        <module>springai-alibaba-light-agent</module>
+        <module>S08-springai-alibaba-voice-chat-robot</module>
+        <module>S09-springai-alibaba-mcp</module>
         <module>springai-alibaba-voice-translate</module>
     </modules>
     <packaging>pom</packaging>
@@ -105,3 +107,4 @@
     </build>
 
 </project>
+
