@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>实时语音翻译 Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --surface: #ffffff;
+            --border: #e5e7eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #dc2626;
+            --success: #059669;
+            --code-bg: #f3f4f6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, Arial, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+        header { margin-bottom: 24px; }
+        header h1 {
+            margin: 0 0 4px 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+        header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card h2 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: var(--muted);
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 500;
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        label.field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        select, input[type="file"] {
+            font-size: 14px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            min-width: 160px;
+        }
+        button {
+            font-size: 14px;
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        button:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button.primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        button.primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+            color: #fff;
+        }
+        button.danger {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        button.danger:hover:not(:disabled) {
+            background: var(--danger);
+            color: #fff;
+        }
+        .recording-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            margin-right: 6px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: var(--code-bg);
+            color: var(--muted);
+        }
+        .status.busy { background: #fef3c7; color: #92400e; }
+        .status.done { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .result-block {
+            margin-bottom: 16px;
+        }
+        .result-block .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .result-block .content {
+            min-height: 60px;
+            padding: 12px;
+            background: var(--code-bg);
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 14px;
+        }
+        audio { width: 100%; margin-top: 8px; }
+        .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>实时语音翻译</h1>
+        <p>先用 SenseVoiceSmall 把音频转成文字，再用 Qwen 流式翻译，SSE 实时推送到页面。</p>
+    </header>
+
+    <div class="card">
+        <div class="tabs">
+            <button class="tab active" data-tab="file">上传音频</button>
+            <button class="tab" data-tab="mic">麦克风录音</button>
+        </div>
+
+        <div class="tab-panel active" id="panel-file">
+            <div class="row">
+                <label class="field">
+                    <span>音频文件</span>
+                    <input type="file" id="fileInput" accept="audio/*"/>
+                </label>
+                <label class="field">
+                    <span>目标语言</span>
+                    <select id="fileLang">
+                        <option value="英语">英语</option>
+                        <option value="中文">中文</option>
+                        <option value="日语">日语</option>
+                        <option value="韩语">韩语</option>
+                        <option value="法语">法语</option>
+                        <option value="德语">德语</option>
+                        <option value="西班牙语">西班牙语</option>
+                    </select>
+                </label>
+                <button id="uploadBtn" class="primary" disabled>开始转写并翻译</button>
+            </div>
+            <div class="hint">支持 mp3 / wav / m4a 等常见音频格式，单个文件不超过 25 MB。</div>
+            <audio id="filePreview" controls style="display:none"></audio>
+        </div>
+
+        <div class="tab-panel" id="panel-mic">
+            <div class="row">
+                <button id="recordBtn" class="primary">开始录音</button>
+                <button id="stopBtn" class="danger" disabled>停止</button>
+                <span id="recordStatus" class="status">空闲</span>
+                <label class="field">
+                    <span>目标语言</span>
+                    <select id="micLang">
+                        <option value="英语">英语</option>
+                        <option value="中文">中文</option>
+                        <option value="日语">日语</option>
+                        <option value="韩语">韩语</option>
+                        <option value="法语">法语</option>
+                        <option value="德语">德语</option>
+                        <option value="西班牙语">西班牙语</option>
+                    </select>
+                </label>
+            </div>
+            <audio id="micPreview" controls style="display:none"></audio>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="row" style="justify-content: space-between;">
+            <h2 style="margin:0;">识别与翻译结果</h2>
+            <span id="jobStatus" class="status">空闲</span>
+        </div>
+
+        <div class="result-block" style="margin-top:16px;">
+            <div class="label">语音转写</div>
+            <div id="transcription" class="content">—</div>
+        </div>
+
+        <div class="result-block">
+            <div class="label">流式翻译</div>
+            <div id="translation" class="content">—</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const $ = (id) => document.getElementById(id);
+
+    // ---------- 切换 Tab ----------
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            $('panel-' + tab.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ---------- 上传文件模式 ----------
+    const fileInput = $('fileInput');
+    const filePreview = $('filePreview');
+    const uploadBtn = $('uploadBtn');
+
+    fileInput.addEventListener('change', () => {
+        const f = fileInput.files[0];
+        if (!f) { uploadBtn.disabled = true; filePreview.style.display = 'none'; return; }
+        filePreview.src = URL.createObjectURL(f);
+        filePreview.style.display = 'block';
+        uploadBtn.disabled = false;
+    });
+
+    uploadBtn.addEventListener('click', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        runJob(file, $('fileLang').value);
+    });
+
+    // ---------- 麦克风录音模式 ----------
+    let mediaRecorder = null;
+    let micChunks = [];
+    let micStream = null;
+    const recordBtn = $('recordBtn');
+    const stopBtn = $('stopBtn');
+    const recordStatus = $('recordStatus');
+    const micPreview = $('micPreview');
+
+    recordBtn.addEventListener('click', async () => {
+        try {
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micChunks = [];
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus' : 'audio/webm';
+            mediaRecorder = new MediaRecorder(micStream, { mimeType });
+            mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) micChunks.push(e.data); };
+            mediaRecorder.start();
+            recordBtn.disabled = true;
+            stopBtn.disabled = false;
+            recordStatus.innerHTML = '<span class="recording-dot"></span>录音中';
+        } catch (e) {
+            recordStatus.textContent = '未获得麦克风权限';
+            recordStatus.classList.add('error');
+        }
+    });
+
+    stopBtn.addEventListener('click', () => {
+        if (!mediaRecorder) return;
+        mediaRecorder.stop();
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(micChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            micPreview.src = URL.createObjectURL(blob);
+            micPreview.style.display = 'block';
+            micStream.getTracks().forEach(t => t.stop());
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+            recordStatus.textContent = '已录制';
+            runJob(blob, $('micLang').value, blob.type);
+        };
+    });
+
+    // ---------- 任务主流程 ----------
+    function setJobStatus(text, kind) {
+        const el = $('jobStatus');
+        el.textContent = text;
+        el.classList.remove('busy', 'done', 'error');
+        if (kind) el.classList.add(kind);
+    }
+
+    function runJob(blob, targetLanguage, filenameHint) {
+        const fd = new FormData();
+        const filename = filenameHint
+            ? (blob.type.includes('webm') ? 'recording.webm' : 'recording.' + blob.type.split('/')[1]?.split(';')[0])
+            : (blob.name || 'audio');
+        fd.append('file', blob, filename);
+        fd.append('targetLanguage', targetLanguage);
+
+        $('transcription').textContent = '…';
+        $('translation').textContent = '…';
+        setJobStatus('上传中…', 'busy');
+
+        fetch('/auto/uploadAudio', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(({ taskId }) => {
+                if (!taskId) throw new Error('未返回 taskId');
+                setJobStatus('识别 / 翻译中…', 'busy');
+                const es = new EventSource('/auto/getResultStream/' + encodeURIComponent(taskId));
+
+                es.addEventListener('transcription', e => {
+                    $('transcription').textContent = e.data;
+                });
+                es.addEventListener('translation', e => {
+                    const el = $('translation');
+                    if (el.textContent === '…') el.textContent = '';
+                    el.textContent += e.data;
+                });
+                es.addEventListener('end', () => {
+                    es.close();
+                    setJobStatus('完成', 'done');
+                });
+                es.addEventListener('error', e => {
+                    es.close();
+                    setJobStatus('连接异常', 'error');
+                });
+            })
+            .catch(err => {
+                setJobStatus('上传失败：' + err.message, 'error');
+            });
+    }
+</script>
+</body>
+</html>

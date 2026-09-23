@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: voice-translate-demo
+  thymeleaf:
+    cache: false
+  servlet:
+    multipart:
+      # 单个音频文件最大 25 MB，足以覆盖常见长音频
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+  ai:
+    openai:
+      # 替换成你在 SiliconFlow 申请的 API Key，也可用环境变量 SILICON_API_KEY 传入
+      api-key:
+      base-url: https://api.siliconflow.cn
+      audio:
+        transcription:
+          api-key:
+          base-url: https://api.siliconflow.cn
+          transcription-path: /audio/transcriptions
+          options:
+            # 语音转写模型，主打中英文识别
+            model: XingChenAGI/XingChenASR-V3.2
+            response-format: json
+      chat:
+        options:
+          # 翻译对话模型
+          model: Qwen/Qwen2.5-7B-Instruct
+          temperature: 0.2
+
+logging:
+  level:
+    org.happyhai.springai.alibaba: INFO
+    org.springframework.ai.openai: INFO
