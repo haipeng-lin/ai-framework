@@ -1,0 +1,28 @@
+server:
+  port: 20021
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: A21-agentscope-classify
+
+agentscope:
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true
+
+# A21 模块的运行时开关
+classify:
+  # 是否开启"先规则、再 LLM"的快速通道（延迟 < 10ms 的兜底）
+  rule-classifier-enabled: true
+  # 模糊控制场景下，复杂度评分的阈值；超过阈值走 Plan Mode
+  fuzzy:
+    plan-mode-threshold: 2
+    max-iterations: 30
