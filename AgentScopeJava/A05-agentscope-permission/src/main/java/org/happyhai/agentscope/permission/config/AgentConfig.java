@@ -4,6 +4,7 @@ import io.agentscope.core.permission.PermissionBehavior;
 import io.agentscope.core.permission.PermissionContextState;
 import io.agentscope.core.permission.PermissionMode;
 import io.agentscope.core.permission.PermissionRule;
+import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
@@ -17,7 +18,9 @@ import java.nio.file.Paths;
 public class AgentConfig {
 
     @Bean(destroyMethod = "close")
-    public HarnessAgent permissionedAgent(DashScopeChatModel chatModel, Toolkit toolkit) {
+    public HarnessAgent permissionedAgent(DashScopeChatModel chatModel,
+                                         Toolkit toolkit,
+                                         AgentStateStore stateStore) {
         PermissionContextState permCtx = PermissionContextState.builder()
                 .mode(PermissionMode.DEFAULT)
                 // DEFAULT 模式下没有显式 ALLOW 规则的工具会被默认 ASK 拦下，
@@ -47,13 +50,15 @@ public class AgentConfig {
                 "   - dev-002  卧室灯" + sep +
                 "   - dev-003  ...（非灯跳过）" + sep +
                 "   请告诉我要关哪些灯（可以多选，写 deviceId 或名字都行）。" + sep +
-                "3. 用户给出选择之后，对每一个被选中的设备分别调用 toggle_light(deviceId, action)。" +
-                "- deviceId 必须是 query_online_devices 返回的，禁止编造。" + sep +
-                "- action 用户说关就用 off，说开就用 on。" + sep +
-                "4. toggle_light 是物理动作，调用后会停下来等用户人工确认。" +
-                "在你的回复里要先说『接下来要 ... 需要您确认』之类的提示语。" + sep +
+        "3. 用户给出选择之后，**立即**对每一个被选中的设备调一次 toggle_light(deviceId, action)；" +
+                "不要先用文字描述『接下来要 ...』，不要预告，直接发起工具调用。" + sep +
+                "   - deviceId 必须是 query_online_devices 返回的，禁止编造。" + sep +
+                "   - action 用户说关就用 off，说开就用 on。" + sep +
+                "4. toggle_light 是物理动作，permission 系统会在调用发生时自动暂停等用户审核，" +
+                "把『接下来要关/开什么』之类的铺垫话留给框架的 approval_required 事件带给前端，" +
+                "你自己只需要保证工具调用真的发出了就行。" + sep +
                 "违反规则：跳过 query_online_devices 直接调 toggle_light 是禁止的；" +
-                "凭空写出 deviceId 也是禁止的；这两种情况不要尝试。" + sep +
+                "凭空写出 deviceId 也是禁止的；调用 tool 时不要用自然语言铺垫。" + sep +
                 "如果用户问的不是操控灯，那么只用 query_online_devices 帮他看设备就够了，不要自动调 toggle_light。";
 
         return HarnessAgent.builder()
@@ -61,6 +66,7 @@ public class AgentConfig {
                 .sysPrompt(sysPrompt)
                 .model(chatModel)
                 .toolkit(toolkit)
+                .stateStore(stateStore)
                 .permissionContext(permCtx)
                 .workspace(Paths.get(".agentscope/workspace"))
                 .compaction(CompactionConfig.builder()
