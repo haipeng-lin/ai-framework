@@ -85,7 +85,10 @@
         <module>A02-agentscope-agent</module>
         <module>A04-agentscope-tool</module>
         <module>A05-agentscope-permission</module>
+        <module>A06-agentscope-middleware</module>
+        <module>A11-agentscope-jev</module>
         <module>I01-agentscope-agentstate</module>
+        <module>A21-agentscope-classify</module>
     </modules>
     <packaging>pom</packaging>
 

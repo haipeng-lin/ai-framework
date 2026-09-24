@@ -1,0 +1,28 @@
+server:
+  port: 20006
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: A06-agentscope-middleware
+
+agentscope:
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true
+
+# 本模块内置中间件的运行时参数
+middleware:
+  rate-limit:
+    # 两次模型调用之间的最小间隔（毫秒）。设为 0 表示不限速。
+    min-interval-ms: 0
+  final-answer-filter:
+    # 是否启用 FinalAnswerFilterMiddleware（只输出最终推理轮的文本）。
+    enabled: false
