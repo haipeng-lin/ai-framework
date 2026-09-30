@@ -1,0 +1,24 @@
+server:
+  port: 20007
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: H07-agentscope-harness-skill
+
+agentscope:
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true
+  # agent 的 workspace 根目录。留空时 AgentConfig 会以 AgentConfig.class 为锚点
+  # 往上找 pom.xml，定位到当前 Maven 模块根，再拼上 .agentscope/workspace；
+  # 想放别处就在这里给绝对路径，比如：
+  #   workspace-dir: ${java.io.tmpdir}/agentscope-h07
+  workspace-dir:

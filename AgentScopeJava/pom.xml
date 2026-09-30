@@ -89,6 +89,9 @@
         <module>A11-agentscope-jev</module>
         <module>I01-agentscope-agentstate</module>
         <module>A21-agentscope-classify</module>
+        <module>B01-agentscope-mcp-server</module>
+        <module>B02-agentscope-mcp-client</module>
+        <module>agentscope-harness</module>
     </modules>
     <packaging>pom</packaging>
 
