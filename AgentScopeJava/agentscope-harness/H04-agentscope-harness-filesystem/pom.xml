@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.happyhai.agentscope</groupId>
+        <artifactId>agentscope-harness</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>H04-agentscope-harness-filesystem</artifactId>
+    <version>1.0.0</version>
+
+    <name>H04-agentscope-harness-filesystem</name>
+    <description>
+        共享存储模式（RemoteFilesystemSpec）演示：把 HarnessAgent 的工作区文件
+        路由到 Redis，作为多副本间的共享存储。基于 jedis + agentscope-extensions-redis。
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-dashscope-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Redis 共享存储后端：BaseStore / AgentStateStore -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-redis</artifactId>
+        </dependency>
+
+        <!--
+            直接用 jedis 构造 JedisPooled 喂给 RedisDistributedStore.fromJedis。
+            agentscope-extensions-redis 已经传递依赖了 jedis，这里再显式声明
+            一次只是为了把版本固定在本仓库里能解析到的 7.x。
+        -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+</project>

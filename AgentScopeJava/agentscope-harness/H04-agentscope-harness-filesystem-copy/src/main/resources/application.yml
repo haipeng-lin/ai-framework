@@ -1,0 +1,37 @@
+server:
+  port: 20014
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: H04-agentscope-harness-filesystem-copy
+
+# 这个 replica 自己的标识，会出现在每个 SSE 事件和 inspect 响应里。
+# 多副本测试时对比两个 replica 的 replica-id，就能看清请求被打到哪一份。
+agentscope:
+  replica-id: replica-B
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true
+  # agent 名字跟 H04 保持一致 —— 用户数据按 userId 落到同一个 namespace，
+  agent-name: filesystem-shared-store-agent
+  # 本地 workspace 路径故意和 H04 不一样，证明本地目录只是只读模板，
+  # 不参与跨副本共享。两个副本各自的 .agentscope/workspace-copy 互不影响。
+  workspace-dir: .agentscope/workspace-copy
+
+
+redis:
+  distributed:
+    host: localhost
+    port: 6379
+    password: 123456   # 没有密码就留空或删掉这一行
+    database: 14               # 0-15，默认 0
+    timeout: 2000             # 连接超时（毫秒）
+    max-total: 50             # 连接池最大连接数（可选）

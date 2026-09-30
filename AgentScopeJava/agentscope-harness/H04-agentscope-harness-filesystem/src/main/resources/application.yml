@@ -1,0 +1,32 @@
+server:
+  port: 20004
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: H04-agentscope-harness-filesystem
+
+agentscope:
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true
+  # agent 的 workspace 根目录。
+  workspace-dir: .agentscope/workspace
+  # agent 名称
+  agent-name: filesystem-shared-store-agent
+
+redis:
+  distributed:
+    host: localhost
+    port: 6379
+    password: 123456   # 没有密码就留空或删掉这一行
+    database: 14               # 0-15，默认 0
+    timeout: 2000             # 连接超时（毫秒）
+    max-total: 50             # 连接池最大连接数（可选）
