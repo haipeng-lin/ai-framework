@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.happyhai.agentscope</groupId>
+        <artifactId>agentscope-admin</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>B02-agentscope-mcp-client</artifactId>
+    <version>1.0.0</version>
+
+    <dependencies>
+        <!-- DashScope 模型 + Harness 智能体 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-dashscope-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--
+             显式依赖 MCP 客户端 SDK，与 AgentScope 内部使用的版本对齐。
+             AgentScope 2.0.1 通过 agentscope-core 自带 io.modelcontextprotocol.sdk:mcp:0.17.0，
+             这里不再重复声明 mcp 依赖。
+        -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,27 @@
+server:
+  port: 20102
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: B02-agentscope-mcp-client
+
+agentscope:
+  model:
+    provider: dashscope
+  dashscope:
+    api-key: ${DASHSCOPE_API_KEY}
+    model-name: qwen-plus
+    stream: true
+  # MCP 客户端配置
+  mcp:
+    # 指向 B01-agentscope-mcp-server
+    url: http://localhost:20101/mcp
+    # 鉴权 Token：优先 MCP_GATE_TOKEN，其次 MCP_GATEWAY_TOKEN，最后 application.yml 默认值
+    token: my-secret-token-123
+    timeout: PT30S
+    initialization-timeout: PT10S

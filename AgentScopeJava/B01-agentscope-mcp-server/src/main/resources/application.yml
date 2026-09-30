@@ -1,0 +1,25 @@
+server:
+  port: 20101
+  servlet:
+    encoding:
+      force: true
+      enabled: true
+      charset: UTF-8
+
+spring:
+  application:
+    name: B01-agentscope-mcp-server
+
+logging:
+  level:
+    root: INFO
+    org.happyhai.agentscope.mcp.server: DEBUG
+    io.modelcontextprotocol: DEBUG
+    io.modelcontextprotocol.server: TRACE
+
+# Token 从环境变量 MCP_GATEWAY_TOKEN 注入，避免硬编码。
+# 同时给一个默认值，方便本地无环境变量时启动。
+agentscope:
+  mcp:
+    endpoint: /mcp
+    token: my-secret-token-123

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.happyhai.agentscope</groupId>
+        <artifactId>agentscope-admin</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>B01-agentscope-mcp-server</artifactId>
+    <version>1.0.0</version>
+
+    <properties>
+        <mcp.version>0.17.0</mcp.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Standalone MCP Java SDK. Version aligns with what AgentScope v2.0.1 pulls in transitively. -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>${mcp.version}</version>
+        </dependency>
+
+        <!-- Spring WebMVC streamable transport, 与 spring-boot-starter-web 配套使用 -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-spring-webmvc</artifactId>
+            <version>${mcp.version}</version>
+        </dependency>
+    </dependencies>
+</project>
